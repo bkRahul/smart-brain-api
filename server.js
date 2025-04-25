@@ -8,11 +8,14 @@ const register = require('./controllers/register')
 const signin = require('./controllers/signin')
 const profile = require('./controllers/profile')
 const image = require('./controllers/image')
+const { requireAuth } = require('./controllers/authorization')
 
 const db = knex({
   // connect to your own database here:
   client: 'pg',
-  connection: process.env.POSTGRES_URI,
+  connection:
+    process.env.POSTGRES_URI ||
+    'postgres://postgres:1068@127.0.0.1:5432/smart-brain',
 })
 
 const app = express()
@@ -24,17 +27,20 @@ app.use(express.json()) // latest version of exressJS now comes with Body-Parser
 app.get('/', (req, res) => {
   res.send(db.users)
 })
-app.post('/signin', signin.handleSignin(db, bcrypt))
+app.post('/signin', signin.signinAuthentication(db, bcrypt))
 app.post('/register', (req, res) => {
   register.handleRegister(req, res, db, bcrypt)
 })
-app.get('/profile/:id', (req, res) => {
+app.get('/profile/:id', requireAuth, (req, res) => {
   profile.handleProfileGet(req, res, db)
 })
-app.put('/image', (req, res) => {
+app.put('/profile/:id', requireAuth, (req, res) => {
+  profile.handleProfileUpdate(req, res, db)
+})
+app.put('/image', requireAuth, (req, res) => {
   image.handleImage(req, res, db)
 })
-app.post('/imageurl', (req, res) => {
+app.post('/imageurl', requireAuth, (req, res) => {
   image.handleApiCall(req, res)
 })
 
